@@ -1,0 +1,230 @@
+﻿@using System.Resources
+@using System.Web.UI.WebControls
+@using DoctorPremium.Web.Helpers
+@using Resources
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section head {
+    @Styles.Render("~/Content/assetsScheduleCSS")
+    @Scripts.Render("~/bundles/assetsScheduleJS")
+    @Styles.Render("~/Content/ChosenCSS")
+    @Scripts.Render("~/bundles/ChosenJS")
+    @Scripts.Render("~/bundles/UnobtrusiveJS")
+    <style type="text/css">
+        .fc-header {
+            float: right;
+        }
+
+        .fc-header-title h2 {
+            font-size: 16px;
+        }
+
+        .fc-border-separate tr.fc-last th, .fc-border-separate tr.fc-last td {
+            font-size: 15px;
+        }
+
+        .fc-header .fc-button {
+           
+            font-size: 11px;
+        }
+    </style>
+}
+
+<div class="heading">
+    <div class="row">
+        <div class="col-sm-6 col-lg-6" style="padding-bottom: 15px;">
+
+            <h3>@Resources.Schedule.schedule</h3>
+
+            <div class="col-sm-5">
+                <div class="input-group date" id="dp2" style="cursor: pointer; margin-top: 7px;">
+                    <input class="form-control uniform-input text" size="18" type="text" />
+                    <span class="input-group-addon"><i class="icon-calendar"></i></span>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="form-group top10" style="float: right; margin-right: 30px; margin-left: 5px; ">
+
+            <button class="btn btn-default btn-sm" data-toggle="modal" onclick="GetEditForm(0, 1)" data-target="#uiModal" style="float: right; width: 100px;margin-right: 40px;">@Resources.Schedule.NewVisit</button>
+        </div>
+        <div class="form-group top10" style="margin-right: 15px;">
+            @*</div>*@
+            @*<div class="col-sm-3" style="float: right">*@
+
+            <button id="new_visit" class="btn btn-default btn-sm" data-toggle="modal" onclick="GetEditForm(0, 2)" data-target="#uiModalTask" style="float: right; width: 100px;    ">@Resources.Schedule.NewTask</button>
+        </div>
+    </div>
+</div>
+@*<div class="body">*@
+<div id="calendar" class="col-lg-9 top15" style="width: 100%; margin-top: 40px"></div>
+
+@*<div id="footer">
+        <p> Email: &nbsp;infodoctorpremium@gmail.com &nbsp;</p>
+    </div>*@
+
+<div id="dialog" title="My dialog" style="display: none">
+    <form>
+        <fieldset>
+            <label for="Id">Id</label>
+            <input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all">
+            <label for="Id">Title</label>
+            <input type="text" name="title" id="title" class="text ui-widget-content ui-corner-all">
+        </fieldset>
+    </form>
+</div>
+
+
+
+<div class="row">
+    <div id="edit_container" class="col-lg-12">
+        @*@Html.Action("EditEntry","Schedule", new {id = 0, type = 1})*@
+    </div>
+    <div id="edit_container_day" class="col-lg-12">
+    </div>
+</div>
+
+@*</div>*@
+
+
+
+
+
+
+
+@section scripts
+{
+
+    <script type="text/javascript">
+        $('.timepicker-empty').timepicker({ 'defaultTime': false });
+        $(function () { CalendarInit('@LanguageHelper.GetCurrentLanguage()'); });
+        var flagsErros = true;
+
+        function DeleteFlag() {
+            flagsErros = true;
+        }
+
+        function GetEditForm(id, type, time, day, radio) {
+            if (flagsErros === true) {
+                flagsErros = false;
+                $('#edit_container').html('');
+                $.ajax({
+                    type: "GET",
+                    url: '@Url.Action("EditEntry", "Schedule")' + '?id=' + id + '&type=' + (type == null ? '0' : type) + '&time=' + time + '&day=' + day,
+                    data: $(this).serialize(),
+                    success: function (data) {
+                        $('#edit_container').html(data);
+                        $("#uiModal").modal('show');
+                        $('#calendar').fullCalendar('refetchEvents');
+                    }
+                });
+            }
+        }
+
+        function GetModalForm(timesmy, day) {
+            $('#edit_container_day').html('');
+            $.ajax({
+                type: "GET",
+                url: '@Url.Action("ModalFormEntry", "Schedule")',
+                //   data: $(this).serialize(),
+                success: function (data) {
+                    $('#edit_container_day').html(data);
+                    $('#new_t').attr('onclick', 'GetEditForm(0,1,"' + timesmy + '" , "' + day + '");');
+                    $('#new_vis').attr('onclick', 'GetEditForm(0,2,"' + timesmy + '" , "' + day + '");');
+                    $("#uiModalFormEntry").modal('show');
+                }
+            });
+        }
+
+        function SaveDataCalendar(id, timeStartOneMy) {
+            start = moment(timeStartOneMy).format('YYYY/MM/DD H:mm');
+            $.ajax({
+                type: "Post",
+                url: '@Url.Action("SaveMoveCalendar", "Schedule")' + '?id=' + id + '&timeStartOne=' + start,
+                @*url: '@Url.Action("EditEntry", "Schedule")' + '?id=' + id + '&type=' + (type == null ? '0' : type) + '&time=' + time,*@
+                data: $(this).serialize()
+            });
+        }
+
+        function DeleteDataCalendar(id) {
+            if (confirm("@Resources.Resource.DeleteConfirm")) {
+                $('#calendar').fullCalendar('removeEvents', id);
+                $.ajax({
+                    type: "Post",
+                    url: '@Url.Action("DeleteDataCalendar", "Schedule")' + '?id=' + id,
+                    data: $(this).serialize(),
+                    success: function (data) {
+                        if (data.success) {
+                            $('#calendar').fullCalendar('refetchEvents');
+                            //Modalfade();
+                            $('#uiModal').modal('hide');
+                        }
+                    }
+                });
+            }
+        }
+
+        function FinishDataCalendar(id) {
+            $.ajax({
+                type: "Post",
+                url: '@Url.Action("FinishDataCalendar", "Schedule")' + '?id=' + id,
+                data: $(this).serialize(),
+                success: function (data) {
+                    if (data.success) {
+                        $('#calendar').fullCalendar('refetchEvents');
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            $('#dp2').datepicker({
+                language: '@(LanguageHelper.GetCurrentLanguage())',
+                orientation: "top left",
+                todayHighlight: true
+            });
+            $('#dp2').datepicker('setDate', 'today');
+        });
+        $(document).ready(function () {
+            $('#dp2').datepicker().on('changeDate', function (evt) {
+                var endDate = evt.date;
+                $('#calendar').fullCalendar('gotoDate', endDate);
+            });
+        });
+
+        function proverka(input) {
+            input.value = input.value.replace(/[^\d.]/g, '');
+        };
+
+
+        function check() {
+            $('#search').prop('disabled', false);
+            $('.chzn-select-search').trigger("chosen:updated");
+        };
+
+        function check_second() {
+            $('#search').prop('disabled', true);
+            $('.chzn-select-search').trigger("chosen:updated");
+        };
+
+        function jqueryFunc() {
+            var id = $('[id*=search]').val();
+
+            $.ajax({
+                type: "POST",
+                url: '@Url.Action("GetDataPatient", "Schedule")' + '?id=' + id,
+                data: $(this).serialize(),
+                success: function (data) {
+                    $('#NameValue').val(data.name + " " + data.phone1);
+                }
+            });
+        };
+    </script>
+}
+
+
+
