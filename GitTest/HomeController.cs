@@ -26,6 +26,7 @@ namespace DoctorPremium.Web.Controllers
         {
             /*if (value != "1")
             {
+             * 
                 if (User.IsInRole("Doctor"))
                 {
                     return RedirectToAction("Index", "Schedule");
